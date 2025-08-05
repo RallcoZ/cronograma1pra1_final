@@ -185,6 +185,7 @@
     
     // --- ClickUp Configuration (Somente IDs, sem token!) ---
     const CLICKUP_CONFIG = {
+        APP_TAG: 'calendario-app', // Nossa etiqueta especial!
         LIST_ID: '901110936571',
         STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
         STATUSES: [
@@ -271,16 +272,13 @@
         const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime();
         const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getTime();
         
-        // Temporarily changed for debugging
-        const endpoint = `test`;
+        // MUDANÇA #1: Adicionamos o filtro pela nossa etiqueta especial na chamada da API.
+        const endpoint = `list/${CLICKUP_CONFIG.LIST_ID}/task?subtasks=true&due_date_gt=${firstDay}&due_date_lt=${lastDay}&tags[]=${CLICKUP_CONFIG.APP_TAG}`;
         
         try {
-            // Using clickupFetch which now points to our proxy
             const data = await clickupFetch(endpoint);
-            // This part will fail gracefully if the response is from /api/test, which is fine for debugging
             return data.tasks || []; 
         } catch (error) { 
-            // The alert will show the error from the proxy if it fails
             alert(`Erro ao buscar tarefas do ClickUp: ${error.message}`); 
             return []; 
         }
@@ -315,10 +313,60 @@
     function populateModalDropdowns() { postStatusInput.innerHTML = CLICKUP_CONFIG.STATUSES.map(s => `<option value="${s.id}">${s.name}</option>`).join(''); postAssigneesInput.innerHTML = CLICKUP_CONFIG.USERS.map(u => `<option value="${u.id}">${u.name}</option>`).join(''); postTagsInput.innerHTML = CLICKUP_CONFIG.TAGS.map(t => `<option value="${t.name}">${t.name}</option>`).join(''); }
     async function openModal(dateStr, taskId = null) { modal.classList.remove('hidden'); setTimeout(() => modal.querySelector('div > div').classList.remove('scale-95', 'opacity-0'), 10); postForm.reset(); if (taskId) { currentEditingTaskId = taskId; modalTitle.textContent = 'Editar Tarefa'; deleteBtn.classList.remove('hidden'); const task = await getSingleClickUpTask(taskId); if (!task) { closeModal(); return; } postTitleInput.value = task.name; postDescriptionInput.value = task.description || ''; postStatusInput.value = task.status.id; postPriorityInput.value = task.priority?.priority || '3'; const assigneeIds = task.assignees.map(a => a.id); Array.from(postAssigneesInput.options).forEach(opt => { opt.selected = assigneeIds.includes(parseInt(opt.value)); }); const tagNames = task.tags.map(t => t.name); Array.from(postTagsInput.options).forEach(opt => { opt.selected = tagNames.includes(opt.value); }); const taskDate = new Date(parseInt(task.due_date)); postDateInput.value = taskDate.toISOString().split('T')[0]; } else { currentEditingTaskId = null; modalTitle.textContent = 'Adicionar Tarefa'; deleteBtn.classList.add('hidden'); postDateInput.value = dateStr; postStatusInput.value = CLICKUP_CONFIG.STATUSES.find(s => s.name === 'redigindo').id; } }
     function closeModal() { modal.querySelector('div > div').classList.add('scale-95', 'opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
-    async function handleFormSubmit(e) { e.preventDefault(); saveBtn.disabled = true; saveBtn.textContent = 'Salvando...'; const assignees = Array.from(postAssigneesInput.selectedOptions).map(opt => parseInt(opt.value)); const tags = Array.from(postTagsInput.selectedOptions).map(opt => opt.value); const dueDate = new Date(postDateInput.value + 'T12:00:00Z').getTime(); const taskData = { name: postTitleInput.value, description: postDescriptionInput.value, status: postStatusInput.value, priority: parseInt(postPriorityInput.value), assignees: assignees, tags: tags, due_date: dueDate, }; try { let savedTask; if (currentEditingTaskId) { await updateClickUpTask(currentEditingTaskId, taskData); savedTask = { id: currentEditingTaskId }; } else { savedTask = await createClickUpTask(taskData); } const attachmentFile = postAttachmentInput.files[0]; if (attachmentFile && savedTask.id) { saveBtn.textContent = 'Enviando anexo...'; await uploadAttachmentToTask(savedTask.id, attachmentFile); } closeModal(); await fetchAndRenderAll(); } catch (error) { console.error('Error saving task:', error); alert(`Falha ao salvar a tarefa: ${error.message}`); } finally { saveBtn.disabled = false; saveBtn.textContent = 'Salvar Tarefa'; } }
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Salvando...';
+        
+        const assignees = Array.from(postAssigneesInput.selectedOptions).map(opt => parseInt(opt.value));
+        const tags = Array.from(postTagsInput.selectedOptions).map(opt => opt.value);
+        
+        // MUDANÇA #2: Adicionamos nossa etiqueta especial automaticamente a toda nova tarefa.
+        if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) {
+            tags.push(CLICKUP_CONFIG.APP_TAG);
+        }
+
+        const dueDate = new Date(postDateInput.value + 'T12:00:00Z').getTime();
+        const taskData = {
+            name: postTitleInput.value,
+            description: postDescriptionInput.value,
+            status: postStatusInput.value,
+            priority: parseInt(postPriorityInput.value),
+            assignees: assignees,
+            tags: tags,
+            due_date: dueDate,
+        };
+        try {
+            let savedTask;
+            if (currentEditingTaskId) {
+                await updateClickUpTask(currentEditingTaskId, taskData);
+                savedTask = { id: currentEditingTaskId };
+            } else {
+                savedTask = await createClickUpTask(taskData);
+            }
+            const attachmentFile = postAttachmentInput.files[0];
+            if (attachmentFile && savedTask.id) {
+                saveBtn.textContent = 'Enviando anexo...';
+                await uploadAttachmentToTask(savedTask.id, attachmentFile);
+            }
+            closeModal();
+            await fetchAndRenderAll();
+        } catch (error) {
+            console.error('Error saving task:', error);
+            alert(`Falha ao salvar a tarefa: ${error.message}`);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Salvar Tarefa';
+        }
+    }
     
     // --- Event Listeners ---
-    document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); fetchAndRenderAll(); }); document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); fetchAndRenderAll(); }); document.getElementById('today-btn').addEventListener('click', () => { currentDate = new Date(); fetchAndRenderAll(); }); document.getElementById('cancel-btn').addEventListener('click', closeModal); modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }); postForm.addEventListener('submit', handleFormSubmit);
+    document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); fetchAndRenderAll(); });
+    document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); fetchAndRenderAll(); });
+    document.getElementById('today-btn').addEventListener('click', () => { currentDate = new Date(); fetchAndRenderAll(); });
+    document.getElementById('cancel-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    postForm.addEventListener('submit', handleFormSubmit);
 
 </script>
 </body>

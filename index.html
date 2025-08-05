@@ -25,8 +25,16 @@
         /* Estilos customizados para o Tom Select */
         .ts-control {
             background-color: #1A202C !important;
-            border-color: #4A5568 !important;
+            border: 1px solid #4A5568 !important;
             border-radius: 0.5rem !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+        .ts-control:hover {
+            border-color: #637381 !important;
+        }
+        .ts-control.focus {
+             border-color: #01FEF2 !important;
+             box-shadow: 0 0 0 0.2rem rgba(1, 254, 242, 0.25) !important;
         }
         .ts-dropdown {
             background-color: #1A202C !important;
@@ -35,10 +43,10 @@
         .ts-dropdown .option {
             padding: 8px 12px;
         }
-        .ts-dropdown .option:hover {
-            background-color: #01FEF220;
+        .ts-dropdown .option:hover, .ts-dropdown .active {
+            background-color: #01FEF220 !important;
         }
-        .ts-item, .ts-control .ts-input {
+        .ts-item, .ts-control .ts-input, .ts-control .item {
             color: #E2E8F0 !important;
         }
         .ts-item {
@@ -47,9 +55,6 @@
             border-radius: 0.25rem;
             display: inline-flex;
             align-items: center;
-        }
-        .ts-item.active {
-            background-color: #01FEF2 !important;
         }
         .ts-item .remove-button {
             color: #000 !important;
@@ -183,24 +188,19 @@
                     <div>
                         <div class="mb-4">
                             <label for="post-status" class="block text-sm font-medium text-gray-300 mb-2">Status</label>
-                            <select id="post-status"></select>
+                            <select id="post-status" placeholder="Selecione um status..."></select>
                         </div>
                         <div class="mb-4">
                             <label for="post-assignees" class="block text-sm font-medium text-gray-300 mb-2">Responsáveis</label>
-                            <select id="post-assignees" multiple></select>
+                            <select id="post-assignees" multiple placeholder="Selecione os responsáveis..."></select>
                         </div>
                         <div class="mb-4">
                             <label for="post-priority" class="block text-sm font-medium text-gray-300 mb-2">Prioridade</label>
-                            <select id="post-priority">
-                                <option value="1">Urgente</option>
-                                <option value="2">Alta</option>
-                                <option value="3" selected>Normal</option>
-                                <option value="4">Baixa</option>
-                            </select>
+                            <select id="post-priority" placeholder="Selecione uma prioridade..."></select>
                         </div>
                         <div class="mb-4">
                             <label for="post-tags" class="block text-sm font-medium text-gray-300 mb-2">Etiquetas</label>
-                            <select id="post-tags" multiple></select>
+                            <select id="post-tags" multiple placeholder="Adicione ou crie etiquetas..."></select>
                         </div>
                     </div>
                 </div>
@@ -230,13 +230,12 @@
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
             STATUSES: [
-                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" }, { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
+                { id: "sc901110936571_Rma95Ekh", name: "redigindo", color: "#87909e" }, { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
                 { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" }, { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
                 { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" }, { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
                 { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" }, { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
                 { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" }, { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
             ],
-            // ATUALIZADO: Adicionamos a propriedade 'avatar' com a URL da foto de perfil
             USERS: [
                 { id: 43026696, name: "Walber Design", avatar: "https://attachments.clickup.com/profilePictures/43026696_wNe.jpg" },
                 { id: 49057040, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/49057040_IlI.jpg" },
@@ -257,6 +256,12 @@
                 { id: 194482086, name: "Lucas Rodrigues", avatar: null },
                 { id: 212437679, name: "Videomaker do Futuro", avatar: "https://attachments.clickup.com/profilePictures/212437679_Uyv.jpg" },
                 { id: 212521614, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/212521614_8Lg.jpg" }
+            ],
+            PRIORITIES: [
+                { id: '1', name: 'Urgente', color: '#d33d44' },
+                { id: '2', name: 'Alta', color: '#e16b16' },
+                { id: '3', name: 'Normal', color: '#3E63DD' },
+                { id: '4', name: 'Baixa', color: '#87909e' }
             ],
             TAGS: [
                 { name: "história", color: "#e5484d" }, { name: "realizada", color: "#3E63DD" }, { name: "movimento", color: "#0091FF" },
@@ -294,16 +299,14 @@
 
         // --- Tom Select Initialization ---
         function initializeTomSelects() {
+            if (Object.keys(tomSelectInstances).length > 0) return; // Evita reinicialização
+
             // Status Select
             tomSelectInstances.status = new TomSelect('#post-status', {
                 options: CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })),
                 render: {
-                    option: function(data, escape) {
-                        return `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span>${escape(data.text)}</span></div>`;
-                    },
-                    item: function(data, escape) {
-                        return `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span>${escape(data.text)}</div>`;
-                    }
+                    option: (data, escape) => `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span>${escape(data.text)}</span></div>`,
+                    item: (data, escape) => `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span>${escape(data.text)}</div>`
                 }
             });
 
@@ -311,14 +314,23 @@
             tomSelectInstances.assignees = new TomSelect('#post-assignees', {
                 options: CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })),
                 render: {
-                    option: function(data, escape) {
-                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=random`;
+                    option: (data, escape) => {
+                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=random&color=fff`;
                         return `<div class="flex items-center"><img class="assignee-option-avatar" src="${avatarUrl}" alt=""><span>${escape(data.text)}</span></div>`;
                     },
-                    item: function(data, escape) {
-                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=random`;
+                    item: (data, escape) => {
+                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=random&color=fff`;
                         return `<div class="flex items-center"><img class="assignee-item-avatar" src="${avatarUrl}" alt=""><span>${escape(data.text)}</span></div>`;
                     }
+                }
+            });
+
+            // Priority Select - NOVO
+            tomSelectInstances.priority = new TomSelect('#post-priority', {
+                options: CLICKUP_CONFIG.PRIORITIES.map(p => ({ value: p.id, text: p.name, color: p.color })),
+                render: {
+                    option: (data, escape) => `<div><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span>${escape(data.text)}</span></div>`,
+                    item: (data, escape) => `<div><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span>${escape(data.text)}</span></div>`
                 }
             });
 
@@ -328,12 +340,8 @@
                 create: true,
                 plugins: ['remove_button'],
                 render: {
-                    option: function(data, escape) {
-                        const color = data.color || '#718096';
-                        return `<div><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: ${color}40; color: ${color}; font-weight: 500;">${escape(data.text)}</span></div>`;
-                    },
-                    item: function(data, escape) {
-                        const color = data.color || '#718096';
+                    item: (data, escape) => {
+                        const color = CLICKUP_CONFIG.TAGS.find(t => t.name === data.text)?.color || '#718096';
                          return `<div class="ts-item" style="background-color: ${color} !important; color: #fff !important; text-shadow: 0 0 5px rgba(0,0,0,0.5);">${escape(data.text)}</div>`;
                     }
                 }
@@ -447,8 +455,17 @@
             setTimeout(() => modal.querySelector('div > div').classList.remove('scale-95', 'opacity-0'), 10);
             postForm.reset();
 
-            // Limpa e reseta os selects do Tom Select
-            Object.values(tomSelectInstances).forEach(instance => instance.clear());
+            Object.values(tomSelectInstances).forEach(instance => {
+                instance.clear();
+                instance.clearOptions(); 
+            });
+
+            // Re-popula as opções antes de setar os valores
+            tomSelectInstances.status.addOptions(CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })));
+            tomSelectInstances.assignees.addOptions(CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })));
+            tomSelectInstances.priority.addOptions(CLICKUP_CONFIG.PRIORITIES.map(p => ({ value: p.id, text: p.name, color: p.color })));
+            tomSelectInstances.tags.addOptions(CLICKUP_CONFIG.TAGS.map(t => ({ value: t.name, text: t.name, color: t.color })));
+
 
             if (taskId) {
                 currentEditingTaskId = taskId;
@@ -462,16 +479,16 @@
                 postDescriptionInput.value = task.description || '';
                 tomSelectInstances.status.setValue(task.status.id);
                 tomSelectInstances.assignees.setValue(task.assignees.map(a => a.id));
+                tomSelectInstances.priority.setValue(task.priority?.priority || '3');
                 tomSelectInstances.tags.setValue(task.tags.map(t => t.name));
-                // Note: prioridade e data ainda usam campos normais
-                document.getElementById('post-priority').value = task.priority?.priority || '3';
                 postDateInput.value = new Date(parseInt(task.due_date)).toISOString().split('T')[0];
             } else {
                 currentEditingTaskId = null;
                 modalTitle.textContent = 'Adicionar Tarefa';
                 deleteBtn.classList.add('hidden');
                 postDateInput.value = dateStr;
-                tomSelectInstances.status.setValue(CLICKUP_CONFIG.STATUSES.find(s => s.name === 'redação').id);
+                tomSelectInstances.status.setValue(CLICKUP_CONFIG.STATUSES.find(s => s.name === 'redigindo').id);
+                tomSelectInstances.priority.setValue('3'); // Default to Normal
             }
         }
         function closeModal() {
@@ -483,7 +500,6 @@
             saveBtn.disabled = true;
             saveBtn.textContent = 'Salvando...';
             
-            // Pega os valores dos campos do Tom Select
             const assignees = tomSelectInstances.assignees.getValue();
             const tags = tomSelectInstances.tags.getValue();
             if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) {
@@ -494,7 +510,7 @@
                 name: postTitleInput.value,
                 description: postDescriptionInput.value,
                 status: tomSelectInstances.status.getValue(),
-                priority: parseInt(document.getElementById('post-priority').value),
+                priority: parseInt(tomSelectInstances.priority.getValue()),
                 assignees: assignees,
                 tags: tags,
                 due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(),

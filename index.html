@@ -246,7 +246,6 @@
             APP_TAG: 'calendario-app',
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
-            // ATUALIZADO: Cores originais do ClickUp
             STATUSES: [
                 { id: "sc901110936571_Rma95Ekh", name: "redigindo", color: "#87909e" },
                 { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
@@ -280,14 +279,12 @@
                 { id: 212437679, name: "Videomaker do Futuro", avatar: "https://attachments.clickup.com/profilePictures/212437679_Uyv.jpg" },
                 { id: 212521614, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/212521614_8Lg.jpg" }
             ],
-            // ATUALIZADO: Cores originais do ClickUp
             PRIORITIES: [
                 { id: '1', name: 'Urgente', color: '#d33d44' },
                 { id: '2', name: 'Alta', color: '#e16b16' },
                 { id: '3', name: 'Normal', color: '#3E63DD' },
                 { id: '4', name: 'Baixa', color: '#87909e' }
             ],
-            // ATUALIZADO: Adicionamos as cores das etiquetas
             TAGS: [
                 { name: "história", color: "#e5484d" }, { name: "realizada", color: "#3E63DD" }, { name: "movimento", color: "#0091FF" },
                 { name: "brincadeiras", color: "#e93d82" }, { name: "agendada", color: "#f76808" }, { name: "site", color: "#248F7D" },
@@ -329,8 +326,14 @@
             tomSelectInstances.assignees = new TomSelect('#post-assignees', {
                 options: CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })),
                 render: {
-                    option: (data, escape) => { const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`; return `<div class="flex items-center"><img class="assignee-option-avatar" src="${avatarUrl}" alt=""><span>${escape(data.text)}</span></div>`; },
-                    item: (data, escape) => { const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`; return `<div class="flex items-center"><img class="assignee-item-avatar" src="${avatarUrl}" alt=""><span>${escape(data.text)}</span></div>`; }
+                    option: (data, escape) => {
+                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`;
+                        return `<div class="flex items-center"><img class="assignee-option-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`;
+                    },
+                    item: (data, escape) => {
+                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`;
+                        return `<div class="flex items-center"><img class="assignee-item-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`;
+                    }
                 }
             });
 

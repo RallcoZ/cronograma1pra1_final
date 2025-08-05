@@ -317,8 +317,8 @@
             tomSelectInstances.status = new TomSelect('#post-status', {
                 options: CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })),
                 render: {
-                    option: (data, escape) => `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>`,
-                    item: (data, escape) => `<div><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>`
+                    option: (data, escape) => `<div class="flex items-center"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>`,
+                    item: (data, escape) => `<div class="flex items-center"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>`
                 }
             });
 
@@ -333,8 +333,8 @@
             tomSelectInstances.priority = new TomSelect('#post-priority', {
                 options: CLICKUP_CONFIG.PRIORITIES.map(p => ({ value: p.id, text: p.name, color: p.color })),
                 render: {
-                    option: (data, escape) => `<div><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${escape(data.text)}</span></div>`,
-                    item: (data, escape) => `<div><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${escape(data.text)}</span></div>`
+                    option: (data, escape) => `<div class="flex items-center"><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${escape(data.text)}</span></div>`,
+                    item: (data, escape) => `<div class="flex items-center"><svg class="inline-block mr-2" width="12" height="12" viewBox="0 0 24 24" fill="${escape(data.color)}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${escape(data.text)}</span></div>`
                 }
             });
 
@@ -347,7 +347,7 @@
         
         async function clickupFetch(endpoint, options = {}) { const response = await fetch('/api/clickup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint, method: options.method || 'GET', body: options.body || null }) }); if (!response.ok) { const err = await response.json(); throw new Error(err.err || 'Erro desconhecido'); } return response.json(); }
         async function uploadAttachmentToTask(taskId, file) { const formData = new FormData(); formData.append('taskId', taskId); formData.append('attachment', file); const response = await fetch('/api/uploadAttachment', { method: 'POST', body: formData }); if (!response.ok) { const err = await response.json(); throw new Error(err.err || 'Erro no upload'); } return response.json(); }
-        async function getClickUpTasks() { const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime(); const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getTime(); const endpoint = `list/${CLICKUP_CONFIG.LIST_ID}/task?subtasks=true&due_date_gt=${firstDay}&due_date_lt=${lastDay}&tags[]=${CLICKUP_CONFIG.APP_TAG}`; try { const data = await clickupFetch(endpoint); return data.tasks || []; } catch (error) { alert(`Erro ao buscar tarefas do ClickUp: ${error.message}`); return []; } }
+        async function getClickUpTasks() { const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getTime(); const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate(); const endpoint = `list/${CLICKUP_CONFIG.LIST_ID}/task?subtasks=true&due_date_gt=${firstDay}&due_date_lt=${lastDay}&tags[]=${CLICKUP_CONFIG.APP_TAG}`; try { const data = await clickupFetch(endpoint); return data.tasks || []; } catch (error) { alert(`Erro ao buscar tarefas do ClickUp: ${error.message}`); return []; } }
         async function getSingleClickUpTask(taskId) { try { return await clickupFetch(`task/${taskId}?subtasks=true`); } catch (error) { console.error(`Failed to fetch task ${taskId}:`, error); return null; } }
         async function createClickUpTask(taskData) { return clickupFetch(`list/${CLICKUP_CONFIG.LIST_ID}/task`, { method: 'POST', body: taskData }); }
         async function updateClickUpTask(taskId, taskData) { return clickupFetch(`task/${taskId}`, { method: 'PUT', body: taskData }); }

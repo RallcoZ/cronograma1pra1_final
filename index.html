@@ -246,17 +246,18 @@
             APP_TAG: 'calendario-app',
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
+            // ATUALIZADO: Cores originais do ClickUp
             STATUSES: [
-                { id: "sc901110936571_Rma95Ekh", name: "redigindo", color: "#ffffff" }, 
-                { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#ffffff" },
-                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#065359" }, 
-                { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#00fdf1" },
-                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#00fdf1" }, 
-                { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#00fdf1" },
-                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#065359" }, 
-                { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#00fdf1" },
-                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#09293d" }, 
-                { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#065359" },
+                { id: "sc901110936571_Rma95Ekh", name: "redigindo", color: "#87909e" },
+                { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
+                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" },
+                { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
+                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" },
+                { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
+                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" },
+                { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
+                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" },
+                { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
             ],
             USERS: [
                 { id: 43026696, name: "Walber Design", avatar: "https://attachments.clickup.com/profilePictures/43026696_wNe.jpg" },
@@ -279,18 +280,21 @@
                 { id: 212437679, name: "Videomaker do Futuro", avatar: "https://attachments.clickup.com/profilePictures/212437679_Uyv.jpg" },
                 { id: 212521614, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/212521614_8Lg.jpg" }
             ],
+            // ATUALIZADO: Cores originais do ClickUp
             PRIORITIES: [
-                { id: '1', name: 'Urgente', color: '#00fdf1' },
-                { id: '2', name: 'Alta', color: '#065359' },
-                { id: '3', name: 'Normal', color: '#09293d' },
-                { id: '4', name: 'Baixa', color: '#ffffff' }
+                { id: '1', name: 'Urgente', color: '#d33d44' },
+                { id: '2', name: 'Alta', color: '#e16b16' },
+                { id: '3', name: 'Normal', color: '#3E63DD' },
+                { id: '4', name: 'Baixa', color: '#87909e' }
             ],
+            // ATUALIZADO: Adicionamos as cores das etiquetas
             TAGS: [
-                 { name: "história" }, { name: "realizada" }, { name: "movimento" }, { name: "brincadeiras" }, 
-                 { name: "agendada" }, { name: "site" }, { name: "esporte" }, { name: "destaques" }, 
-                 { name: "miniatura" }, { name: "feed" }, { name: "telegrama" }, { name: "premiação" }, 
-                 { name: "diário" }, { name: "institucional" }, { name: "animação" }, { name: "casa" }, 
-                 { name: "vfx" }, { name: "youtube" }
+                { name: "história", color: "#e5484d" }, { name: "realizada", color: "#3E63DD" }, { name: "movimento", color: "#0091FF" },
+                { name: "brincadeiras", color: "#e93d82" }, { name: "agendada", color: "#f76808" }, { name: "site", color: "#248F7D" },
+                { name: "esporte", color: "#AB4ABA" }, { name: "destaques", color: "#A18072" }, { name: "miniatura", color: "#23CB27" },
+                { name: "feed", color: "#6E56CF" }, { name: "telegrama", color: "#248F7D" }, { name: "premiação", color: "#6E56CF" },
+                { name: "diário", color: "#6E56CF" }, { name: "institucional", color: "#3E63DD" }, { name: "animação", color: "#000000" },
+                { name: "casa", color: "#2F8960" }, { name: "vfx", color: "#2A7552" }, { name: "youtube", color: "#12A594" }
             ]
         };
 
@@ -339,9 +343,20 @@
             });
 
             tomSelectInstances.tags = new TomSelect('#post-tags', {
-                options: CLICKUP_CONFIG.TAGS.map(t => ({ value: t.name, text: t.name })),
-                create: true, plugins: ['remove_button'],
-                render: { item: (data, escape) => `<div class="ts-item" style="background-color: var(--color-accent-medium) !important; color: var(--color-accent-bright) !important;">${escape(data.text)}</div>` }
+                options: CLICKUP_CONFIG.TAGS.map(t => ({ value: t.name, text: t.name, color: t.color })),
+                create: true, 
+                plugins: ['remove_button'],
+                render: {
+                    option: (data, escape) => {
+                        const color = data.color || '#718096';
+                        return `<div class="py-1"><span style="background-color: ${escape(color)}; color: white; padding: 3px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;">${escape(data.text)}</span></div>`;
+                    },
+                    item: (data, escape) => {
+                        const tagData = CLICKUP_CONFIG.TAGS.find(t => t.name.toLowerCase() === data.text.toLowerCase());
+                        const color = tagData ? tagData.color : '#718096';
+                        return `<div class="ts-item" style="background-color: ${escape(color)} !important; color: white !important; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">${escape(data.text)}</div>`;
+                    }
+                }
             });
         }
         
@@ -365,7 +380,7 @@
             tomSelectInstances.status.addOptions(CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })));
             tomSelectInstances.assignees.addOptions(CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })));
             tomSelectInstances.priority.addOptions(CLICKUP_CONFIG.PRIORITIES.map(p => ({ value: p.id, text: p.name, color: p.color })));
-            tomSelectInstances.tags.addOptions(CLICKUP_CONFIG.TAGS.map(t => ({ value: t.name, text: t.name })));
+            tomSelectInstances.tags.addOptions(CLICKUP_CONFIG.TAGS.map(t => ({ value: t.name, text: t.name, color: t.color })));
             if (taskId) {
                 currentEditingTaskId = taskId;
                 modalTitle.textContent = 'Editar Tarefa';

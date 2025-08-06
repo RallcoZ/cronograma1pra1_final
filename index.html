@@ -315,14 +315,27 @@
         let currentEditingTaskId = null;
         let tomSelectInstances = {};
         let popoverTimeout;
+        let realtimeChannel = null;
 
         const authView = document.getElementById('auth-view'); const calendarView = document.getElementById('calendar-view'); const loginContainer = document.getElementById('login-container'); const signupContainer = document.getElementById('signup-container'); const loginForm = document.getElementById('login-form'); const signupForm = document.getElementById('signup-form'); const authError = document.getElementById('auth-error'); const userEmailEl = document.getElementById('user-email'); const monthYearEl = document.getElementById('month-year'); const calendarBodyEl = document.getElementById('calendar-body'); const modal = document.getElementById('post-modal'); const modalTitle = document.getElementById('modal-title'); const postForm = document.getElementById('post-form'); const postIdInput = document.getElementById('post-id'); const postDateInput = document.getElementById('post-date'); const postTitleInput = document.getElementById('post-title'); const postDescriptionInput = document.getElementById('post-description'); const postAttachmentInput = document.getElementById('post-attachment'); const deleteBtn = document.getElementById('delete-post-btn'); const saveBtn = document.getElementById('save-btn'); const feedPreviewGrid = document.getElementById('feed-preview-grid'); const feedLoader = document.getElementById('feed-loader'); const feedEmpty = document.getElementById('feed-empty');
         const taskPopover = document.getElementById('task-popover');
-        const currentAttachmentsContainer = document.getElementById('current-attachments-container');
-        const currentAttachmentsList = document.getElementById('current-attachments-list');
+        const currentAttachmentsContainer = document.getElementById('current-attachments-container'); const currentAttachmentsList = document.getElementById('current-attachments-list');
         
         // --- Lógica Principal da Aplicação ---
-        supabase.auth.onAuthStateChange((event, session) => { if (session && session.user) { currentUser = session.user; userEmailEl.textContent = currentUser.email; authView.classList.add('hidden'); calendarView.classList.remove('hidden'); initializeApp(); } else { currentUser = null; authView.classList.remove('hidden'); calendarView.classList.add('hidden'); } });
+        supabase.auth.onAuthStateChange((event, session) => { 
+            if (session && session.user) { 
+                currentUser = session.user; 
+                userEmailEl.textContent = currentUser.email; 
+                authView.classList.add('hidden'); 
+                calendarView.classList.remove('hidden'); 
+                initializeApp(); 
+            } else { 
+                currentUser = null; 
+                authView.classList.remove('hidden'); 
+                calendarView.classList.add('hidden'); 
+                if(realtimeChannel) { supabase.removeChannel(realtimeChannel); } 
+            } 
+        });
         loginForm.addEventListener('submit', async (e) => { e.preventDefault(); authError.textContent = ''; const btn = loginForm.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Aguarde...'; try { const { error } = await supabase.auth.signInWithPassword({ email: loginForm.email.value, password: loginForm.password.value }); if (error) authError.textContent = 'Email ou senha inválidos.'; } finally { btn.disabled = false; btn.textContent = 'ENTRAR'; } });
         signupForm.addEventListener('submit', async (e) => { e.preventDefault(); authError.textContent = ''; const btn = signupForm.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Aguarde...'; try { const { error } = await supabase.auth.signUp({ email: signupForm.email.value, password: signupForm.password.value }); if (error) { authError.textContent = error.message; } else { authError.textContent = 'Verifique seu email para confirmar a conta!'; } } finally { btn.disabled = false; btn.textContent = 'CRIAR CONTA'; } });
         document.getElementById('logout-btn').addEventListener('click', () => supabase.auth.signOut()); document.getElementById('show-signup').addEventListener('click', () => { loginContainer.classList.add('hidden'); signupContainer.classList.remove('hidden'); }); document.getElementById('show-login').addEventListener('click', () => { signupContainer.classList.add('hidden'); loginContainer.classList.remove('hidden'); });
@@ -331,14 +344,38 @@
             if (!currentUser) return; 
             initializeTomSelects(); 
             await fetchAndRenderAll();
-            
-            setInterval(() => {
-                console.log('Verificando automaticamente por atualizações do ClickUp...');
-                fetchAndRenderAll();
-            }, 120000); 
+            listenForRealtimeUpdates();
         }
-        async function fetchAndRenderAll() { tasks = await getClickUpTasks(); renderCalendar(); renderFeedPreview(); }
 
+        function listenForRealtimeUpdates() {
+            if (realtimeChannel) { supabase.removeChannel(realtimeChannel); }
+            realtimeChannel = supabase.channel('task-updates');
+            realtimeChannel.on('broadcast', { event: 'taskUpdated' }, async ({ payload }) => {
+                console.log('Atualização de tarefa recebida via webhook!', payload);
+                const updatedTaskId = payload.task_id;
+                const updatedTask = await getSingleClickUpTask(updatedTaskId);
+                if (updatedTask) {
+                    const index = tasks.findIndex(t => t.id === updatedTaskId);
+                    const taskDate = new Date(parseInt(updatedTask.due_date));
+                    const taskIsInCurrentMonth = taskDate.getMonth() === currentDate.getMonth() && taskDate.getFullYear() === currentDate.getFullYear();
+                    
+                    if (index !== -1) {
+                        if (taskIsInCurrentMonth) {
+                            tasks[index] = updatedTask;
+                        } else {
+                            tasks.splice(index, 1);
+                        }
+                    } else if (taskIsInCurrentMonth) {
+                        tasks.push(updatedTask);
+                    }
+                    renderCalendar();
+                    renderFeedPreview();
+                }
+            }).subscribe();
+        }
+
+        async function fetchAndRenderAll() { tasks = await getClickUpTasks(); renderCalendar(); renderFeedPreview(); }
+        
         function initializeTomSelects() {
             if (Object.keys(tomSelectInstances).length > 0) return; 
             tomSelectInstances.status = new TomSelect('#post-status', { options: CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })), render: { option: (data, escape) => `<div class="flex items-center"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>`, item: (data, escape) => `<div class="flex items-center"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${escape(data.color)}; margin-right: 8px;"></span><span style="color: white;">${escape(data.text)}</span></div>` } });
@@ -388,7 +425,6 @@
                 tomSelectInstances.priority.setValue(task.priority?.priority || '3');
                 tomSelectInstances.tags.setValue(task.tags.map(t => t.name));
                 postDateInput.value = new Date(parseInt(task.due_date)).toISOString().split('T')[0];
-
                 if (task.attachments && task.attachments.length > 0) {
                     currentAttachmentsContainer.classList.remove('hidden');
                     task.attachments.forEach(att => {
@@ -429,13 +465,11 @@
                     const createdTask = await createClickUpTask(taskData);
                     taskToUpdateId = createdTask.id;
                 }
-                
                 const attachmentFile = postAttachmentInput.files[0];
                 if (attachmentFile && taskToUpdateId) {
                     saveBtn.textContent = 'Enviando anexo...';
                     await uploadAttachmentToTask(taskToUpdateId, attachmentFile);
                 }
-
                 closeModal();
                 const updatedTask = await getSingleClickUpTask(taskToUpdateId);
                 if (currentEditingTaskId) {

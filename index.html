@@ -218,8 +218,12 @@
                             <textarea id="post-description" rows="4" class="w-full px-3 py-2 bg-[#05172d] border border-[#065359] rounded-lg text-white"></textarea>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-semibold text-white/80 mb-2">Anexo de Referência (Imagem)</label>
+                            <label class="block text-sm font-semibold text-white/80 mb-2">Novo Anexo (Opcional)</label>
                             <input type="file" id="post-attachment" accept="image/*" class="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#00fdf1]/80 file:text-[#05172d] hover:file:bg-[#00fdf1]">
+                        </div>
+                        <div id="current-attachments-container" class="hidden">
+                            <label class="block text-sm font-semibold text-white/80 mb-2">Anexos Atuais</label>
+                            <div id="current-attachments-list" class="space-y-2"></div>
                         </div>
                     </div>
                     <div>
@@ -314,6 +318,8 @@
 
         const authView = document.getElementById('auth-view'); const calendarView = document.getElementById('calendar-view'); const loginContainer = document.getElementById('login-container'); const signupContainer = document.getElementById('signup-container'); const loginForm = document.getElementById('login-form'); const signupForm = document.getElementById('signup-form'); const authError = document.getElementById('auth-error'); const userEmailEl = document.getElementById('user-email'); const monthYearEl = document.getElementById('month-year'); const calendarBodyEl = document.getElementById('calendar-body'); const modal = document.getElementById('post-modal'); const modalTitle = document.getElementById('modal-title'); const postForm = document.getElementById('post-form'); const postIdInput = document.getElementById('post-id'); const postDateInput = document.getElementById('post-date'); const postTitleInput = document.getElementById('post-title'); const postDescriptionInput = document.getElementById('post-description'); const postAttachmentInput = document.getElementById('post-attachment'); const deleteBtn = document.getElementById('delete-post-btn'); const saveBtn = document.getElementById('save-btn'); const feedPreviewGrid = document.getElementById('feed-preview-grid'); const feedLoader = document.getElementById('feed-loader'); const feedEmpty = document.getElementById('feed-empty');
         const taskPopover = document.getElementById('task-popover');
+        const currentAttachmentsContainer = document.getElementById('current-attachments-container');
+        const currentAttachmentsList = document.getElementById('current-attachments-list');
         
         // --- Lógica Principal da Aplicação ---
         supabase.auth.onAuthStateChange((event, session) => { if (session && session.user) { currentUser = session.user; userEmailEl.textContent = currentUser.email; authView.classList.add('hidden'); calendarView.classList.remove('hidden'); initializeApp(); } else { currentUser = null; authView.classList.remove('hidden'); calendarView.classList.add('hidden'); } });
@@ -362,6 +368,8 @@
             modal.classList.remove('hidden');
             setTimeout(() => modal.querySelector('div > div').classList.remove('scale-95', 'opacity-0'), 10);
             postForm.reset();
+            currentAttachmentsContainer.classList.add('hidden');
+            currentAttachmentsList.innerHTML = '';
             Object.values(tomSelectInstances).forEach(instance => { instance.clear(); instance.clearOptions(); });
             tomSelectInstances.status.addOptions(CLICKUP_CONFIG.STATUSES.map(s => ({ value: s.id, text: s.name, color: s.color })));
             tomSelectInstances.assignees.addOptions(CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })));
@@ -380,6 +388,18 @@
                 tomSelectInstances.priority.setValue(task.priority?.priority || '3');
                 tomSelectInstances.tags.setValue(task.tags.map(t => t.name));
                 postDateInput.value = new Date(parseInt(task.due_date)).toISOString().split('T')[0];
+
+                if (task.attachments && task.attachments.length > 0) {
+                    currentAttachmentsContainer.classList.remove('hidden');
+                    task.attachments.forEach(att => {
+                        const attEl = document.createElement('a');
+                        attEl.href = att.url;
+                        attEl.target = '_blank';
+                        attEl.className = 'text-sm text-[#00fdf1] hover:underline block truncate';
+                        attEl.textContent = att.title;
+                        currentAttachmentsList.appendChild(attEl);
+                    });
+                }
             } else {
                 currentEditingTaskId = null;
                 modalTitle.textContent = 'Adicionar Tarefa';
@@ -401,20 +421,23 @@
             const statusName = CLICKUP_CONFIG.STATUSES.find(s => s.id === statusId)?.name;
             const taskData = { name: postTitleInput.value, description: postDescriptionInput.value, status: statusName, priority: parseInt(tomSelectInstances.priority.getValue()), assignees: assignees, tags: tags, due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(), };
             try {
-                let savedTask;
+                let taskToUpdateId;
                 if (currentEditingTaskId) {
-                    savedTask = await updateClickUpTask(currentEditingTaskId, taskData);
+                    await updateClickUpTask(currentEditingTaskId, taskData);
+                    taskToUpdateId = currentEditingTaskId;
                 } else {
-                    savedTask = await createClickUpTask(taskData);
+                    const createdTask = await createClickUpTask(taskData);
+                    taskToUpdateId = createdTask.id;
                 }
+                
                 const attachmentFile = postAttachmentInput.files[0];
-                if (attachmentFile && savedTask.id) {
+                if (attachmentFile && taskToUpdateId) {
                     saveBtn.textContent = 'Enviando anexo...';
-                    await uploadAttachmentToTask(savedTask.id, attachmentFile);
+                    await uploadAttachmentToTask(taskToUpdateId, attachmentFile);
                 }
+
                 closeModal();
-                // Otimização: busca a tarefa atualizada e atualiza o array local
-                const updatedTask = await getSingleClickUpTask(savedTask.id);
+                const updatedTask = await getSingleClickUpTask(taskToUpdateId);
                 if (currentEditingTaskId) {
                     const index = tasks.findIndex(t => t.id === currentEditingTaskId);
                     if (index !== -1) tasks[index] = updatedTask;

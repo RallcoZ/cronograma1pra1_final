@@ -246,8 +246,9 @@
             APP_TAG: 'calendario-app',
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
+            // CORRIGIDO: Nome do status "redigindo" para "redação"
             STATUSES: [
-                { id: "sc901110936571_Rma95Ekh", name: "redigindo", color: "#87909e" },
+                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" },
                 { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
                 { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" },
                 { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
@@ -326,14 +327,8 @@
             tomSelectInstances.assignees = new TomSelect('#post-assignees', {
                 options: CLICKUP_CONFIG.USERS.map(u => ({ value: u.id, text: u.name, avatar: u.avatar })),
                 render: {
-                    option: (data, escape) => {
-                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`;
-                        return `<div class="flex items-center"><img class="assignee-option-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`;
-                    },
-                    item: (data, escape) => {
-                        const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`;
-                        return `<div class="flex items-center"><img class="assignee-item-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`;
-                    }
+                    option: (data, escape) => { const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`; return `<div class="flex items-center"><img class="assignee-option-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`; },
+                    item: (data, escape) => { const avatarUrl = data.avatar || `https://ui-avatars.com/api/?name=${escape(data.text)}&background=065359&color=fff`; return `<div class="flex items-center"><img class="assignee-item-avatar" src="${avatarUrl}" alt=""><span style="color: white;">${escape(data.text)}</span></div>`; }
                 }
             });
 
@@ -402,7 +397,8 @@
                 modalTitle.textContent = 'Adicionar Tarefa';
                 deleteBtn.classList.add('hidden');
                 postDateInput.value = dateStr;
-                tomSelectInstances.status.setValue(CLICKUP_CONFIG.STATUSES.find(s => s.name === 'redigindo').id);
+                // CORRIGIDO: usa o nome correto "redação" para o status padrão
+                tomSelectInstances.status.setValue(CLICKUP_CONFIG.STATUSES.find(s => s.name === 'redação').id);
                 tomSelectInstances.priority.setValue('3');
             }
         }
@@ -416,6 +412,7 @@
             const tags = tomSelectInstances.tags.getValue();
             if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) { tags.push(CLICKUP_CONFIG.APP_TAG); }
             
+            // CORRIGIDO: Envia o NOME do status para a API, em vez do ID.
             const statusId = tomSelectInstances.status.getValue();
             const statusName = CLICKUP_CONFIG.STATUSES.find(s => s.id === statusId)?.name;
 

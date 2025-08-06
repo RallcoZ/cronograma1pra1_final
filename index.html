@@ -411,10 +411,15 @@
             e.preventDefault();
             saveBtn.disabled = true;
             saveBtn.textContent = 'Salvando...';
+            
             const assignees = tomSelectInstances.assignees.getValue();
             const tags = tomSelectInstances.tags.getValue();
             if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) { tags.push(CLICKUP_CONFIG.APP_TAG); }
-            const taskData = { name: postTitleInput.value, description: postDescriptionInput.value, status: tomSelectInstances.status.getValue(), priority: parseInt(tomSelectInstances.priority.getValue()), assignees: assignees, tags: tags, due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(), };
+            
+            const statusId = tomSelectInstances.status.getValue();
+            const statusName = CLICKUP_CONFIG.STATUSES.find(s => s.id === statusId)?.name;
+
+            const taskData = { name: postTitleInput.value, description: postDescriptionInput.value, status: statusName, priority: parseInt(tomSelectInstances.priority.getValue()), assignees: assignees, tags: tags, due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(), };
             try {
                 let savedTask;
                 if (currentEditingTaskId) { await updateClickUpTask(currentEditingTaskId, taskData); savedTask = { id: currentEditingTaskId }; } else { savedTask = await createClickUpTask(taskData); }

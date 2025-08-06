@@ -326,11 +326,10 @@
             initializeTomSelects(); 
             await fetchAndRenderAll();
             
-            // ATUALIZAÇÃO AUTOMÁTICA
             setInterval(() => {
                 console.log('Verificando automaticamente por atualizações do ClickUp...');
                 fetchAndRenderAll();
-            }, 120000); // 120000 milissegundos = 2 minutos
+            }, 120000); 
         }
         async function fetchAndRenderAll() { tasks = await getClickUpTasks(); renderCalendar(); renderFeedPreview(); }
 
@@ -354,7 +353,7 @@
         function createTaskElement(task) { const taskEl = document.createElement('div'); const statusColor = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id)?.color || '#065359'; taskEl.className = `p-1.5 rounded-md text-xs cursor-pointer border-l-4 transition-transform hover:scale-105 hover:z-10`; taskEl.style.borderColor = statusColor; taskEl.style.backgroundColor = `${statusColor}20`; taskEl.draggable = true; taskEl.dataset.taskId = task.id; taskEl.innerHTML = `<p class="font-semibold truncate" style="color: ${statusColor};">${task.name}</p>`; taskEl.addEventListener('click', () => openModal(null, task.id)); taskEl.addEventListener('mouseenter', (event) => showTaskDetails(event, task)); taskEl.addEventListener('mouseleave', hideTaskDetails); return taskEl; }
         function renderFeedPreview() { feedPreviewGrid.innerHTML = ''; feedLoader.classList.remove('hidden'); feedEmpty.classList.add('hidden'); const feedTasks = tasks.filter(task => task.status?.id === CLICKUP_CONFIG.STATUS_ORG_DRIVE && task.attachments?.length > 0).sort((a, b) => parseInt(b.date_updated) - parseInt(a.date_updated)); if (feedTasks.length === 0) { feedLoader.classList.add('hidden'); feedEmpty.classList.remove('hidden'); return; } feedTasks.forEach(task => { const imageAttachments = task.attachments.filter(att => att.extension.match(/jpe?g|png|gif|webp/i)); if (imageAttachments.length > 0) { const latestAttachment = imageAttachments.sort((a,b) => b.date - a.date)[0]; const item = document.createElement('div'); item.className = 'feed-preview-item rounded'; item.style.backgroundImage = `url(${latestAttachment.url})`; feedPreviewGrid.appendChild(item); } }); feedLoader.classList.add('hidden'); if (feedPreviewGrid.children.length === 0) { feedEmpty.classList.remove('hidden'); } }
         
-        function showTaskDetails(event, task) { clearTimeout(popoverTimeout); const priority = CLICKUP_CONFIG.PRIORITIES.find(p => p.id == (task.priority?.priority || '3')); const status = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id); const assigneesHTML = task.assignees.map(assignee => { const user = CLICKUP_CONFIG.USERS.find(u => u.id === assignee.id); const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${assignee.username}&background=065359&color=fff`; return `<img src="${avatarUrl}" title="${assignee.username}" class="w-8 h-8 rounded-full border-2 border-[#09293d]">`; }).join(''); const tagsHTML = task.tags.map(tag => { const tagData = CLICKUP_CONFIG.TAGS.find(t => t.name.toLowerCase() === tag.name.toLowerCase()); const color = tagData ? tagData.color : '#718096'; return `<span style="background-color: ${color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; margin-right: 4px;">${tag.name}</span>`; }).join(''); taskPopover.innerHTML = `<h3 class="font-bold text-lg text-white mb-2 truncate">${task.name}</h3><div class="flex items-center text-sm mb-3"><div class="flex items-center mr-4"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${status?.color || '#fff'}; margin-right: 6px;"></span><span style="color: white;">${status?.name || '...'}</span></div><div class="flex items-center"><svg class="inline-block mr-1" width="12" height="12" viewBox="0 0 24 24" fill="${priority?.color || '#fff'}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${priority?.name || '...'}</span></div></div><div class="flex items-center -space-x-2 mb-3">${assigneesHTML || '<span class="text-sm text-white/60">Ninguém atribuído</span>'}</div><div class="flex flex-wrap gap-1">${tagsHTML}</div>`; const cardRect = event.currentTarget.getBoundingClientRect(); let top = cardRect.top; let left = cardRect.right + 10; if (left + 300 > window.innerWidth) { left = cardRect.left - 300 - 10; } if (top + taskPopover.offsetHeight > window.innerHeight) { top = window.innerHeight - taskPopover.offsetHeight - 10; } taskPopover.style.top = `${top}px`; taskPopover.style.left = `${left}px`; taskPopover.classList.add('visible'); }
+        function showTaskDetails(event, task) { clearTimeout(popoverTimeout); const priority = CLICKUP_CONFIG.PRIORITIES.find(p => p.id == (task.priority?.priority || '3')); const status = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id); const assigneesHTML = (task.assignees || []).map(assignee => { const user = CLICKUP_CONFIG.USERS.find(u => u.id === assignee.id); const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${assignee.username}&background=065359&color=fff`; return `<img src="${avatarUrl}" title="${assignee.username}" class="w-8 h-8 rounded-full border-2 border-[#09293d]">`; }).join(''); const tagsHTML = (task.tags || []).map(tag => { const tagData = CLICKUP_CONFIG.TAGS.find(t => t.name.toLowerCase() === tag.name.toLowerCase()); const color = tagData ? tagData.color : '#718096'; return `<span style="background-color: ${color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">${tag.name}</span>`; }).join(''); taskPopover.innerHTML = `<h3 class="font-bold text-lg text-white mb-2 truncate">${task.name}</h3><div class="flex items-center text-sm mb-3"><div class="flex items-center mr-4"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${status?.color || '#fff'}; margin-right: 6px;"></span><span style="color: white;">${status?.name || '...'}</span></div><div class="flex items-center"><svg class="inline-block mr-1" width="12" height="12" viewBox="0 0 24 24" fill="${priority?.color || '#fff'}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${priority?.name || '...'}</span></div></div><div class="flex items-center -space-x-2 mb-3">${assigneesHTML || '<span class="text-sm text-white/60">Ninguém atribuído</span>'}</div><div class="flex flex-wrap gap-2">${tagsHTML}</div>`; const cardRect = event.currentTarget.getBoundingClientRect(); let top = cardRect.top; let left = cardRect.right + 10; if (left + 300 > window.innerWidth) { left = cardRect.left - 300 - 10; } if (top + taskPopover.offsetHeight > window.innerHeight) { top = window.innerHeight - taskPopover.offsetHeight - 10; } taskPopover.style.top = `${top}px`; taskPopover.style.left = `${left}px`; taskPopover.classList.add('visible'); }
         function hideTaskDetails() { popoverTimeout = setTimeout(() => { taskPopover.classList.remove('visible'); }, 100); }
         taskPopover.addEventListener('mouseenter', () => clearTimeout(popoverTimeout));
         taskPopover.addEventListener('mouseleave', hideTaskDetails);
@@ -404,13 +403,9 @@
             try {
                 let savedTask;
                 if (currentEditingTaskId) {
-                    await updateClickUpTask(currentEditingTaskId, taskData);
-                    savedTask = await getSingleClickUpTask(currentEditingTaskId);
-                    const index = tasks.findIndex(t => t.id === currentEditingTaskId);
-                    if (index !== -1) tasks[index] = savedTask;
+                    savedTask = await updateClickUpTask(currentEditingTaskId, taskData);
                 } else {
                     savedTask = await createClickUpTask(taskData);
-                    tasks.push(savedTask);
                 }
                 const attachmentFile = postAttachmentInput.files[0];
                 if (attachmentFile && savedTask.id) {
@@ -418,6 +413,14 @@
                     await uploadAttachmentToTask(savedTask.id, attachmentFile);
                 }
                 closeModal();
+                // Otimização: busca a tarefa atualizada e atualiza o array local
+                const updatedTask = await getSingleClickUpTask(savedTask.id);
+                if (currentEditingTaskId) {
+                    const index = tasks.findIndex(t => t.id === currentEditingTaskId);
+                    if (index !== -1) tasks[index] = updatedTask;
+                } else {
+                    tasks.push(updatedTask);
+                }
                 renderCalendar(); 
                 renderFeedPreview();
             } catch (error) {

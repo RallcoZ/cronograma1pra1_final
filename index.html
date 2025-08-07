@@ -52,7 +52,6 @@
         .feed-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
         .feed-preview-item { aspect-ratio: 1 / 1; background-size: cover; background-position: center; }
 
-        /* Estilos do Popover de Detalhes da Tarefa */
         #task-popover {
             position: fixed;
             width: 300px;
@@ -72,7 +71,6 @@
             transform: scale(1);
         }
 
-        /* Estilos customizados para o Tom Select */
         .ts-control {
             background-color: var(--color-bg-dark) !important;
             border: 1px solid var(--color-accent-medium) !important;
@@ -80,9 +78,7 @@
             padding: 0.5rem 0.75rem !important;
             font-family: var(--font-body);
         }
-        .ts-control:hover {
-            border-color: var(--color-accent-bright) !important;
-        }
+        .ts-control:hover { border-color: var(--color-accent-bright) !important; }
         .ts-control.focus {
              border-color: var(--color-accent-bright) !important;
              box-shadow: 0 0 0 0.2rem rgba(0, 253, 241, 0.25) !important;
@@ -396,7 +392,7 @@
         function createTaskElement(task) { const taskEl = document.createElement('div'); const statusColor = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id)?.color || '#065359'; taskEl.className = `p-1.5 rounded-md text-xs cursor-pointer border-l-4 transition-transform hover:scale-105 hover:z-10`; taskEl.style.borderColor = statusColor; taskEl.style.backgroundColor = `${statusColor}20`; taskEl.draggable = true; taskEl.dataset.taskId = task.id; taskEl.innerHTML = `<p class="font-semibold truncate" style="color: ${statusColor};">${task.name}</p>`; taskEl.addEventListener('click', () => openModal(null, task.id)); taskEl.addEventListener('mouseenter', (event) => showTaskDetails(event, task)); taskEl.addEventListener('mouseleave', hideTaskDetails); return taskEl; }
         function renderFeedPreview() { feedPreviewGrid.innerHTML = ''; feedLoader.classList.remove('hidden'); feedEmpty.classList.add('hidden'); const feedTasks = tasks.filter(task => task.status?.id === CLICKUP_CONFIG.STATUS_ORG_DRIVE && task.attachments?.length > 0).sort((a, b) => parseInt(b.date_updated) - parseInt(a.date_updated)); if (feedTasks.length === 0) { feedLoader.classList.add('hidden'); feedEmpty.classList.remove('hidden'); return; } feedTasks.forEach(task => { const imageAttachments = task.attachments.filter(att => att.extension.match(/jpe?g|png|gif|webp/i)); if (imageAttachments.length > 0) { const latestAttachment = imageAttachments.sort((a,b) => b.date - a.date)[0]; const item = document.createElement('div'); item.className = 'feed-preview-item rounded'; item.style.backgroundImage = `url(${latestAttachment.url})`; feedPreviewGrid.appendChild(item); } }); feedLoader.classList.add('hidden'); if (feedPreviewGrid.children.length === 0) { feedEmpty.classList.remove('hidden'); } }
         
-        function showTaskDetails(event, task) { clearTimeout(popoverTimeout); const priority = CLICKUP_CONFIG.PRIORITIES.find(p => p.id == (task.priority?.priority || '3')); const status = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id); const assigneesHTML = (task.assignees || []).map(assignee => { const user = CLICKUP_CONFIG.USERS.find(u => u.id === assignee.id); const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${assignee.username}&background=065359&color=fff`; return `<img src="${avatarUrl}" title="${assignee.username}" class="w-8 h-8 rounded-full border-2 border-[#09293d]">`; }).join(''); const tagsHTML = (task.tags || []).map(tag => { const tagData = CLICKUP_CONFIG.TAGS.find(t => t.name.toLowerCase() === tag.name.toLowerCase()); const color = tagData ? tagData.color : '#718096'; return `<span style="background-color: ${color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">${tag.name}</span>`; }).join(''); taskPopover.innerHTML = `<h3 class="font-bold text-lg text-white mb-2 truncate">${task.name}</h3><div class="flex items-center text-sm mb-3"><div class="flex items-center mr-4"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${status?.color || '#fff'}; margin-right: 6px;"></span><span style="color: white;">${status?.name || '...'}</span></div><div class="flex items-center"><svg class="inline-block mr-1" width="12" height="12" viewBox="0 0 24 24" fill="${priority?.color || '#fff'}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${priority?.name || '...'}</span></div></div><div class="flex items-center -space-x-2 mb-3">${assigneesHTML || '<span class="text-sm text-white/60">Ninguém atribuído</span>'}</div><div class="flex flex-wrap gap-2">${tagsHTML}</div>`; const cardRect = event.currentTarget.getBoundingClientRect(); let top = cardRect.top; let left = cardRect.right + 10; if (left + 300 > window.innerWidth) { left = cardRect.left - 300 - 10; } if (top + taskPopover.offsetHeight > window.innerHeight) { top = window.innerHeight - taskPopover.offsetHeight - 10; } taskPopover.style.top = `${top}px`; taskPopover.style.left = `${left}px`; taskPopover.classList.add('visible'); }
+        function showTaskDetails(event, task) { clearTimeout(popoverTimeout); const priority = CLICKUP_CONFIG.PRIORITIES.find(p => p.id == (task.priority?.id || '3')); const status = CLICKUP_CONFIG.STATUSES.find(s => s.id === task.status.id); const assigneesHTML = (task.assignees || []).map(assignee => { const user = CLICKUP_CONFIG.USERS.find(u => u.id === assignee.id); const avatarUrl = user?.avatar || `https://ui-avatars.com/api/?name=${assignee.username}&background=065359&color=fff`; return `<img src="${avatarUrl}" title="${assignee.username}" class="w-8 h-8 rounded-full border-2 border-[#09293d]">`; }).join(''); const tagsHTML = (task.tags || []).map(tag => { const tagData = CLICKUP_CONFIG.TAGS.find(t => t.name.toLowerCase() === tag.name.toLowerCase()); const color = tagData ? tagData.color : '#718096'; return `<span style="background-color: ${color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">${tag.name}</span>`; }).join(''); taskPopover.innerHTML = `<h3 class="font-bold text-lg text-white mb-2 truncate">${task.name}</h3><div class="flex items-center text-sm mb-3"><div class="flex items-center mr-4"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${status?.color || '#fff'}; margin-right: 6px;"></span><span style="color: white;">${status?.name || '...'}</span></div><div class="flex items-center"><svg class="inline-block mr-1" width="12" height="12" viewBox="0 0 24 24" fill="${priority?.color || '#fff'}"><path d="M4 24h-2v-24h2v24zm18-16.632l-10 4.632v-7l10-5v7.368z"/></svg><span style="color: white;">${priority?.name || '...'}</span></div></div><div class="flex items-center -space-x-2 mb-3">${assigneesHTML || '<span class="text-sm text-white/60">Ninguém atribuído</span>'}</div><div class="flex flex-wrap gap-2">${tagsHTML}</div>`; const cardRect = event.currentTarget.getBoundingClientRect(); let top = cardRect.top; let left = cardRect.right + 10; if (left + 300 > window.innerWidth) { left = cardRect.left - 300 - 10; } if (top + taskPopover.offsetHeight > window.innerHeight) { top = window.innerHeight - taskPopover.offsetHeight - 10; } taskPopover.style.top = `${top}px`; taskPopover.style.left = `${left}px`; taskPopover.classList.add('visible'); }
         function hideTaskDetails() { popoverTimeout = setTimeout(() => { taskPopover.classList.remove('visible'); }, 100); }
         taskPopover.addEventListener('mouseenter', () => clearTimeout(popoverTimeout));
         taskPopover.addEventListener('mouseleave', hideTaskDetails);
@@ -422,9 +418,10 @@
                 postDescriptionInput.value = task.description || '';
                 tomSelectInstances.status.setValue(task.status.id);
                 tomSelectInstances.assignees.setValue(task.assignees.map(a => a.id));
-                tomSelectInstances.priority.setValue(task.priority?.priority || '3');
+                tomSelectInstances.priority.setValue(task.priority?.id || '3');
                 tomSelectInstances.tags.setValue(task.tags.map(t => t.name));
                 postDateInput.value = new Date(parseInt(task.due_date)).toISOString().split('T')[0];
+
                 if (task.attachments && task.attachments.length > 0) {
                     currentAttachmentsContainer.classList.remove('hidden');
                     task.attachments.forEach(att => {

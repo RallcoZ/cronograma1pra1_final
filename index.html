@@ -380,12 +380,10 @@
         
         async function enrichTasksWithDetails(tasksToEnrich) {
             const promises = tasksToEnrich.map(task => {
-                // Se a tarefa for candidata ao feed, ou se já tivermos os detalhes (anexos), busca a versão completa.
-                // Isso garante que os anexos não sumam com a atualização periódica.
-                if (task.status?.id === CLICKUP_CONFIG.STATUS_ORG_DRIVE || task.attachments?.length > 0) {
+                if (task.status?.id === CLICKUP_CONFIG.STATUS_ORG_DRIVE && !task.attachments) {
                     return getSingleClickUpTask(task.id);
                 }
-                return Promise.resolve(task); // Para as outras, a versão resumida é suficiente.
+                return Promise.resolve(task);
             });
             return Promise.all(promises);
         }
@@ -400,7 +398,7 @@
         
         async function clickupFetch(endpoint, options = {}) { const response = await fetch('/api/clickup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint, method: options.method || 'GET', body: options.body || null }) }); if (!response.ok) { const err = await response.json(); throw new Error(err.err || 'Erro desconhecido'); } return response.json(); }
         async function uploadAttachmentToTask(taskId, file) { const formData = new FormData(); formData.append('taskId', taskId); formData.append('attachment', file); const response = await fetch('/api/uploadAttachment', { method: 'POST', body: formData }); if (!response.ok) { const err = await response.json(); throw new Error(err.err || 'Erro no upload'); } return response.json(); }
-        async function getClickUpTasks() { const year = currentDate.getFullYear(); const month = currentDate.getMonth(); const firstDay = new Date(year, month, 1).getTime(); const lastDay = new Date(year, month + 1, 0, 23, 59, 59).getTime(); const endpoint = `list/${CLICKUP_CONFIG.LIST_ID}/task?subtasks=true&due_date_gt=${firstDay}&due_date_lt=${lastDay}&tags[]=${CLICKUP_CONFIG.APP_TAG}`; try { const data = await clickupFetch(endpoint); return data.tasks || []; } catch (error) { console.error(`Erro ao buscar tarefas do ClickUp: ${error.message}`); return []; } }
+        async function getClickUpTasks() { const year = currentDate.getFullYear(); const month = currentDate.getMonth(); const firstDay = new Date(year, month, 1).getTime(); const lastDay = new Date(year, month + 1, 1).getTime(); const endpoint = `list/${CLICKUP_CONFIG.LIST_ID}/task?subtasks=true&due_date_gt=${firstDay}&due_date_lt=${lastDay}&tags[]=${CLICKUP_CONFIG.APP_TAG}`; try { const data = await clickupFetch(endpoint); return data.tasks || []; } catch (error) { console.error(`Erro ao buscar tarefas do ClickUp: ${error.message}`); return []; } }
         async function getSingleClickUpTask(taskId) { try { return await clickupFetch(`task/${taskId}?subtasks=true`); } catch (error) { console.error(`Failed to fetch task ${taskId}:`, error); return null; } }
         async function createClickUpTask(taskData) { return clickupFetch(`list/${CLICKUP_CONFIG.LIST_ID}/task`, { method: 'POST', body: taskData }); }
         async function updateClickUpTask(taskId, taskData) { return clickupFetch(`task/${taskId}`, { method: 'PUT', body: taskData }); }

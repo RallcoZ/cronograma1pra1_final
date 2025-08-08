@@ -214,7 +214,7 @@
                             <textarea id="post-description" rows="4" class="w-full px-3 py-2 bg-[#05172d] border border-[#065359] rounded-lg text-white"></textarea>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-semibold text-white/80 mb-2">Anexo de Referência (Opcional)</label>
+                            <label class="block text-sm font-semibold text-white/80 mb-2">Novo Anexo (Opcional)</label>
                             <input type="file" id="post-attachment" accept="image/*" class="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#00fdf1]/80 file:text-[#05172d] hover:file:bg-[#00fdf1]">
                         </div>
                         <div id="current-attachments-container" class="hidden">
@@ -268,11 +268,16 @@
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
             STATUSES: [
-                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" }, { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
-                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" }, { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
-                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" }, { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
-                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" }, { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
-                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" }, { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
+                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" },
+                { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
+                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" },
+                { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
+                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" },
+                { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
+                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" },
+                { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
+                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" },
+                { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
             ],
             USERS: [
                 { id: 43026696, name: "Walber Design", avatar: "https://attachments.clickup.com/profilePictures/43026696_wNe.jpg" }, { id: 49057040, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/49057040_IlI.jpg" },
@@ -310,6 +315,7 @@
 
         const authView = document.getElementById('auth-view'); const calendarView = document.getElementById('calendar-view'); const loginContainer = document.getElementById('login-container'); const signupContainer = document.getElementById('signup-container'); const loginForm = document.getElementById('login-form'); const signupForm = document.getElementById('signup-form'); const authError = document.getElementById('auth-error'); const userEmailEl = document.getElementById('user-email'); const monthYearEl = document.getElementById('month-year'); const calendarBodyEl = document.getElementById('calendar-body'); const modal = document.getElementById('post-modal'); const modalTitle = document.getElementById('modal-title'); const postForm = document.getElementById('post-form'); const postAttachmentInput = document.getElementById('post-attachment'); const deleteBtn = document.getElementById('delete-post-btn'); const saveBtn = document.getElementById('save-btn');
         const taskPopover = document.getElementById('task-popover');
+        const currentAttachmentsContainer = document.getElementById('current-attachments-container'); const currentAttachmentsList = document.getElementById('current-attachments-list');
         
         // --- Lógica Principal da Aplicação ---
         supabase.auth.onAuthStateChange((event, session) => { 
@@ -337,9 +343,10 @@
             if (realtimeChannel) { supabase.removeChannel(realtimeChannel); }
             realtimeChannel = supabase.channel('task-updates');
             realtimeChannel.on('broadcast', { event: 'taskUpdated' }, async ({ payload }) => {
-                const updatedTask = await getSingleClickUpTask(payload.task_id);
+                const updatedTaskId = payload.task_id;
+                const updatedTask = await getSingleClickUpTask(updatedTaskId);
                 if (updatedTask) {
-                    const index = tasks.findIndex(t => t.id === payload.task_id);
+                    const index = tasks.findIndex(t => t.id === updatedTaskId);
                     const taskDate = new Date(parseInt(updatedTask.due_date));
                     const taskIsInCurrentMonth = taskDate.getMonth() === currentDate.getMonth() && taskDate.getFullYear() === currentDate.getFullYear();
                     if (index !== -1) {
@@ -399,92 +406,61 @@
         }
         function closeModal() { /* ... */ }
         
-        // CORRIGIDO: Nova função de Salvar Tarefa com lógica "Otimista"
-        function handleFormSubmit(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
-
             saveBtn.disabled = true;
             saveBtn.textContent = 'Salvando...';
-
-            const temporaryId = `temp_${Date.now()}`;
+            const assignees = tomSelectInstances.assignees.getValue();
+            const tags = tomSelectInstances.tags.getValue();
+            if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) { tags.push(CLICKUP_CONFIG.APP_TAG); }
             const statusId = tomSelectInstances.status.getValue();
-            const statusObject = CLICKUP_CONFIG.STATUSES.find(s => s.id === statusId);
+            const statusName = CLICKUP_CONFIG.STATUSES.find(s => s.id === statusId)?.name;
+            let description = postDescriptionInput.value;
+            const originalDescription = postDescriptionInput.value;
 
-            // ATUALIZAÇÃO OTIMISTA: Cria um objeto temporário com os dados do formulário
-            const optimisticTask = {
-                id: currentEditingTaskId || temporaryId,
-                name: postTitleInput.value,
-                due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime().toString(),
-                status: { id: statusId, color: statusObject?.color || '#fff' },
-                assignees: [], tags: [], priority: null // Dados que não aparecem no card podem ser deixados vazios
-            };
-
-            if (currentEditingTaskId) {
-                const index = tasks.findIndex(t => t.id === currentEditingTaskId);
-                if (index !== -1) tasks[index] = { ...tasks[index], ...optimisticTask };
-            } else {
-                tasks.push(optimisticTask);
-            }
-            renderCalendar();
-            closeModal();
-            
-            // OPERAÇÕES DE BACKEND EM SEGUNDO PLANO
-            (async () => {
-                try {
-                    let description = postDescriptionInput.value;
-                    const originalDescription = postDescriptionInput.value;
-                    const attachmentFile = postAttachmentInput.files[0];
-
-                    if (attachmentFile) {
-                        const filePath = `public/${currentUser.id}/${Date.now()}_${attachmentFile.name}`;
-                        const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, attachmentFile);
-                        if (uploadError) throw new Error(`Falha no upload para Supabase: ${uploadError.message}`);
-                        
-                        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath);
-                        const attachmentLink = `\n\n--- \nAnexo: [${attachmentFile.name}](${urlData.publicUrl})`;
-                        description += attachmentLink;
-                    }
-
-                    const assignees = tomSelectInstances.assignees.getValue();
-                    const tags = tomSelectInstances.tags.getValue();
-                    if (!tags.includes(CLICKUP_CONFIG.APP_TAG)) { tags.push(CLICKUP_CONFIG.APP_TAG); }
-                    const statusName = statusObject?.name;
-
-                    const taskDataForApi = { 
-                        name: postTitleInput.value, 
-                        description: attachmentFile ? description : originalDescription,
-                        status: statusName, 
-                        priority: parseInt(tomSelectInstances.priority.getValue()), 
-                        assignees: assignees, 
-                        tags: tags, 
-                        due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(), 
-                    };
-
-                    let savedTask;
+            try {
+                const attachmentFile = postAttachmentInput.files[0];
+                if (attachmentFile) {
+                    saveBtn.textContent = 'Enviando anexo...';
+                    const filePath = `public/${currentUser.id}/${Date.now()}_${attachmentFile.name}`;
+                    const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, attachmentFile);
+                    if (uploadError) throw new Error(`Falha no upload para Supabase: ${uploadError.message}`);
+                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(filePath);
+                    const attachmentUrl = urlData.publicUrl;
+                    const attachmentLink = `\n\n--- \nAnexo de Referência: [${attachmentFile.name}](${attachmentUrl})`;
+                    description += attachmentLink;
+                }
+                
+                const taskData = { name: postTitleInput.value, description: description, status: statusName, priority: parseInt(tomSelectInstances.priority.getValue()), assignees: assignees, tags: tags, due_date: new Date(postDateInput.value + 'T12:00:00Z').getTime(), };
+                
+                let savedTask;
+                if (currentEditingTaskId) {
+                    taskData.description = attachmentFile ? description : originalDescription;
+                    savedTask = await updateClickUpTask(currentEditingTaskId, taskData);
+                } else {
+                    savedTask = await createClickUpTask(taskData);
+                }
+                
+                closeModal();
+                const finalTask = await getSingleClickUpTask(savedTask.id);
+                if (finalTask) {
                     if (currentEditingTaskId) {
-                        savedTask = await updateClickUpTask(currentEditingTaskId, taskDataForApi);
-                    } else {
-                        savedTask = await createClickUpTask(taskDataForApi);
-                    }
-
-                    // Sincroniza a UI com os dados reais do ClickUp
-                    const finalTask = await getSingleClickUpTask(savedTask.id);
-                    if (finalTask) {
-                        const index = tasks.findIndex(t => t.id === optimisticTask.id); // Procura pelo ID temporário ou real
+                        const index = tasks.findIndex(t => t.id === currentEditingTaskId);
                         if (index !== -1) tasks[index] = finalTask;
-                        renderCalendar();
-                        renderFeedPreview();
-                    }
-                } catch (error) {
-                    console.error('Falha na sincronização em segundo plano:', error);
-                    alert(`A tarefa foi atualizada na tela, mas falhou ao salvar no ClickUp: ${error.message}`);
-                    if (!currentEditingTaskId) {
-                        const index = tasks.findIndex(t => t.id === optimisticTask.id);
-                        if (index !== -1) tasks.splice(index, 1);
-                        renderCalendar();
+                    } else {
+                        tasks.push(finalTask);
                     }
                 }
-            })();
+                renderCalendar(); 
+                renderFeedPreview();
+
+            } catch (error) {
+                console.error('Error saving task:', error);
+                alert(`Falha ao salvar a tarefa: ${error.message}`);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Salvar Tarefa';
+            }
         }
         
         document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); fetchAndRenderAll(); });

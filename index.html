@@ -214,7 +214,7 @@
                             <textarea id="post-description" rows="4" class="w-full px-3 py-2 bg-[#05172d] border border-[#065359] rounded-lg text-white"></textarea>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-semibold text-white/80 mb-2">Novo Anexo (Opcional)</label>
+                            <label class="block text-sm font-semibold text-white/80 mb-2">Anexo de Referência (Opcional)</label>
                             <input type="file" id="post-attachment" accept="image/*" class="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#00fdf1]/80 file:text-[#05172d] hover:file:bg-[#00fdf1]">
                         </div>
                         <div id="current-attachments-container" class="hidden">
@@ -268,16 +268,11 @@
             LIST_ID: '901110936571',
             STATUS_ORG_DRIVE: 'sc901110936571_ALwKEg0e',
             STATUSES: [
-                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" },
-                { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
-                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" },
-                { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
-                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" },
-                { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
-                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" },
-                { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
-                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" },
-                { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
+                { id: "sc901110936571_Rma95Ekh", name: "redação", color: "#87909e" }, { id: "sc901110936571_Aq3F2oot", name: "pendente", color: "#87909e" },
+                { id: "sc901110936571_xt2JAo7W", name: "em andamento", color: "#1090e0" }, { id: "sc901110936571_98o7uPbP", name: "p/ aprovação", color: "#f8ae00" },
+                { id: "sc901110936571_EuMOoSFS", name: "alteração", color: "#e16b16" }, { id: "sc901110936571_4Wjd1tgr", name: "reformulando", color: "#d33d44" },
+                { id: "sc901110936571_m4SxQrUB", name: "enviado", color: "#41e053" }, { id: "sc901110936571_ALwKEg0e", name: "org.drive", color: "#f8ae00" },
+                { id: "sc901110936571_5hw48aZv", name: "agendado", color: "#b660e0" }, { id: "sc901110936571_n58C4vnk", name: "demanda finalizada", color: "#008844" },
             ],
             USERS: [
                 { id: 43026696, name: "Walber Design", avatar: "https://attachments.clickup.com/profilePictures/43026696_wNe.jpg" }, { id: 49057040, name: "Vinícius Lopes", avatar: "https://attachments.clickup.com/profilePictures/49057040_IlI.jpg" },
@@ -348,7 +343,6 @@
                     const index = tasks.findIndex(t => t.id === payload.task_id);
                     const taskDate = new Date(parseInt(updatedTask.due_date));
                     const taskIsInCurrentMonth = taskDate.getMonth() === currentDate.getMonth() && taskDate.getFullYear() === currentDate.getFullYear();
-                    
                     if (index !== -1) {
                         if (taskIsInCurrentMonth) { tasks[index] = updatedTask; } 
                         else { tasks.splice(index, 1); }
@@ -363,8 +357,7 @@
 
         async function fetchAndRenderAll() { 
             const summarizedTasks = await getClickUpTasks();
-            const enrichedTasks = await enrichTasksWithDetails(summarizedTasks);
-            tasks = enrichedTasks;
+            tasks = await enrichTasksWithDetails(summarizedTasks);
             renderCalendar(); 
             renderFeedPreview(); 
         }
@@ -498,6 +491,7 @@
                 }
                 
                 closeModal();
+                
                 const finalTask = await getSingleClickUpTask(savedTask.id);
                 if (finalTask) {
                     if (currentEditingTaskId) {
